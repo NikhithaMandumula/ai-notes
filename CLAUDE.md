@@ -1,3 +1,4 @@
+
 # AI Notes Application
  
 ## Project Overview
