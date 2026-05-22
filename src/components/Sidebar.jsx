@@ -23,6 +23,7 @@ function Sidebar({
   const location = useLocation();
   const isAnalyticsPage = location.pathname === '/analytics';
   const isCalendarPage = location.pathname === '/calendar';
+  const isChatPage = location.pathname === '/chat';
 
   const navItems = [
     {
@@ -124,14 +125,14 @@ function Sidebar({
       <div className={`flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-3'}`}>
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
-            const isActive = activeFilter === item.id && !isAnalyticsPage && !isCalendarPage;
+            const isActive = activeFilter === item.id && !isAnalyticsPage && !isCalendarPage && !isChatPage;
 
             return (
               <motion.button
                 key={item.id}
                 whileHover={{ x: 3 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => { if (isAnalyticsPage || isCalendarPage) navigate('/dashboard'); onFilterChange(item.id); if (isOpen) onClose(); }}
+                onClick={() => { if (isAnalyticsPage || isCalendarPage || isChatPage) navigate('/dashboard'); onFilterChange(item.id); if (isOpen) onClose(); }}
                 title={isCollapsed ? item.label : undefined}
                 className={`relative flex items-center gap-3 ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 text-left ${
                   isActive
@@ -166,13 +167,13 @@ function Sidebar({
             </p>
           )}
           {folders.map((folder) => {
-            const isFolderActive = activeFolder === folder && !isAnalyticsPage && !isCalendarPage;
+            const isFolderActive = activeFolder === folder && !isAnalyticsPage && !isCalendarPage && !isChatPage;
             return (
               <div key={folder} className="group/folder relative">
                 <motion.button
                   whileHover={{ x: 3 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => { if (isAnalyticsPage || isCalendarPage) navigate('/dashboard'); onFolderChange(folder); if (isOpen) onClose(); }}
+                  onClick={() => { if (isAnalyticsPage || isCalendarPage || isChatPage) navigate('/dashboard'); onFolderChange(folder); if (isOpen) onClose(); }}
                   title={isCollapsed ? folder : undefined}
                   className={`relative flex items-center gap-3 w-full ${isCollapsed ? 'justify-center px-2' : 'px-3 pr-8'} py-2.5 rounded-xl transition-all duration-300 text-left ${
                     isFolderActive ? '' : 'hover:bg-[var(--surface-hover)]'
@@ -220,7 +221,7 @@ function Sidebar({
             <motion.button
               whileHover={{ x: 3 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => { if (isAnalyticsPage || isCalendarPage) navigate('/dashboard'); onFilterChange('received'); if (isOpen) onClose(); }}
+              onClick={() => { if (isAnalyticsPage || isCalendarPage || isChatPage) navigate('/dashboard'); onFilterChange('received'); if (isOpen) onClose(); }}
               title={isCollapsed ? 'Received' : undefined}
               className={`relative flex items-center gap-3 ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 text-left ${
                 activeFilter === 'received'
@@ -252,7 +253,7 @@ function Sidebar({
             <motion.button
               whileHover={{ x: 3 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => { if (isAnalyticsPage || isCalendarPage) navigate('/dashboard'); onFilterChange('sent'); if (isOpen) onClose(); }}
+              onClick={() => { if (isAnalyticsPage || isCalendarPage || isChatPage) navigate('/dashboard'); onFilterChange('sent'); if (isOpen) onClose(); }}
               title={isCollapsed ? 'Sent' : undefined}
               className={`relative flex items-center gap-3 ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 text-left ${
                 activeFilter === 'sent'
@@ -335,6 +336,33 @@ function Sidebar({
               </svg>
             </span>
             {!isCollapsed && <span className="relative z-10 text-sm font-medium text-white">Calendar</span>}
+          </motion.button>
+
+          {/* AI Chat */}
+          <motion.button
+            whileHover={{ x: 3 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { navigate('/chat'); if (isOpen) onClose(); }}
+            title={isCollapsed ? 'AI Chat' : undefined}
+            className={`relative flex items-center gap-3 w-full ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 text-left mt-1 ${
+              isChatPage
+                ? 'text-[var(--text-primary)]'
+                : 'text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'
+            }`}
+          >
+            {isChatPage && (
+              <motion.div
+                layoutId="sidebarActive"
+                className="absolute inset-0 bg-cyan-400/10 border border-cyan-400/25 rounded-xl shadow-[0_0_12px_rgba(34,211,238,0.12)]"
+                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10 text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </span>
+            {!isCollapsed && <span className="relative z-10 text-sm font-medium text-white">AI Chat</span>}
           </motion.button>
         </div>
       </div>

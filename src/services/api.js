@@ -245,6 +245,48 @@ export async function generateSummary(content) {
   return data;
 }
 
+// Chat API
+
+const CHAT_BASE = `${API_BASE}/chat`;
+
+export async function sendChatMessage(conversationId, message) {
+  const response = await fetch(CHAT_BASE, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ conversationId, message }),
+  });
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to send message');
+  }
+  return response;
+}
+
+export async function getConversations() {
+  const response = await fetch(`${CHAT_BASE}/conversations`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch conversations');
+  return response.json();
+}
+
+export async function getConversation(id) {
+  const response = await fetch(`${CHAT_BASE}/conversations/${id}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch conversation');
+  return response.json();
+}
+
+export async function deleteConversation(id) {
+  const response = await fetch(`${CHAT_BASE}/conversations/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to delete conversation');
+  return response.json();
+}
+
 // Resources API
 
 export async function uploadFileForNotes(file) {

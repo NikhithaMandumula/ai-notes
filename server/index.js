@@ -12,6 +12,7 @@ import sharesRouter from './routes/shares.js';
 import aiRouter from './routes/ai.js';
 import resourcesRouter from './routes/resources.js';
 import profileRouter from './routes/profile.js';
+import chatRouter from './routes/chat.js';
 import { setupSocket } from './socket.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,6 +36,7 @@ app.use('/api/shares', sharesRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/chat', chatRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
