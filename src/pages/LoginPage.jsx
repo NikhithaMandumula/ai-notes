@@ -21,7 +21,7 @@ function LoginPage() {
 
     try {
       const data = await loginApi(email, password);
-      login(data.token, data.user);
+      login(data.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { signup as signupApi } from '../services/api';
 
 function getPasswordStrength(password) {
@@ -25,6 +26,7 @@ function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const strength = getPasswordStrength(password);
@@ -46,8 +48,9 @@ function SignupPage() {
     setLoading(true);
 
     try {
-      await signupApi(name, email, password);
-      navigate('/login');
+      const data = await signupApi(name, email, password);
+      login(data.user);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

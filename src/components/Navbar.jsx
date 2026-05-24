@@ -28,9 +28,9 @@ function Navbar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowUserMenu(false);
-    logout();
+    await logout();
     navigate('/');
   };
 

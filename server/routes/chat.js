@@ -1,29 +1,26 @@
 import express from 'express';
+import { z } from 'zod';
 import { streamText } from 'ai';
-import { createGroq } from '@ai-sdk/groq';
+import { getGroq } from '../utils/groq.js';
 import auth from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import Conversation from '../models/Conversation.js';
 import Note from '../models/Note.js';
 
 const router = express.Router();
 router.use(auth);
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
+const sendMessageSchema = z.object({
+  conversationId: z.string().optional().nullable(),
+  message: z.string({ required_error: 'Message is required' })
+    .min(1, 'Message is required')
+    .max(10000, 'Message is too long (max 10,000 characters)'),
 });
 
 // POST /api/chat - Send message and get streaming AI response
-router.post('/', async (req, res) => {
+router.post('/', validate(sendMessageSchema), async (req, res) => {
   try {
     const { conversationId, message } = req.body;
-
-    if (!message || !message.trim()) {
-      return res.status(400).json({ message: 'Message is required' });
-    }
-
-    if (message.length > 10000) {
-      return res.status(400).json({ message: 'Message is too long (max 10,000 characters)' });
-    }
 
     // Get or create conversation
     let conversation;
@@ -78,7 +75,7 @@ router.post('/', async (req, res) => {
     res.flushHeaders();
 
     const result = streamText({
-      model: groq('llama-3.1-8b-instant'),
+      model: getGroq()('llama-3.1-8b-instant'),
       maxTokens: 1024,
       temperature: 0.7,
       system: `You are a helpful AI assistant for a note-taking application called AI Notes. You help users with their notes, writing, ideas, and general questions. Be concise, friendly, and helpful.

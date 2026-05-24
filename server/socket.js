@@ -2,10 +2,23 @@ import jwt from 'jsonwebtoken';
 
 const onlineUsers = new Map();
 
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(';').forEach((cookie) => {
+    const [name, ...rest] = cookie.trim().split('=');
+    if (name) cookies[name] = decodeURIComponent(rest.join('='));
+  });
+  return cookies;
+}
+
 export function setupSocket(io) {
   // Authenticate socket connections using JWT
   io.use((socket, next) => {
-    const token = socket.handshake.auth?.token;
+    // Try cookie first, then handshake auth token as fallback
+    const cookies = parseCookies(socket.request.headers.cookie);
+    const token = cookies.token || socket.handshake.auth?.token;
+
     if (!token) {
       return next(new Error('Authentication required'));
     }

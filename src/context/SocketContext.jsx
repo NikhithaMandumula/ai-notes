@@ -6,7 +6,7 @@ import { fetchReceivedShares, fetchSentShares, fetchPendingShareCount } from '..
 const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
-  const { token, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [receivedShares, setReceivedShares] = useState([]);
   const [sentShares, setSentShares] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -14,12 +14,12 @@ export function SocketProvider({ children }) {
 
   // Connect/disconnect socket based on auth state
   useEffect(() => {
-    if (!isAuthenticated || !token) {
+    if (!isAuthenticated) {
       disconnectSocket();
       return;
     }
 
-    const socket = connectSocket(token);
+    const socket = connectSocket();
 
     const handleReceived = (share) => {
       setReceivedShares((prev) => [share, ...prev]);
@@ -38,7 +38,7 @@ export function SocketProvider({ children }) {
       socket.off('note:received', handleReceived);
       disconnectSocket();
     };
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated]);
 
   // Load initial share data when authenticated
   useEffect(() => {

@@ -1,14 +1,20 @@
 import express from 'express';
+import { z } from 'zod';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { generateText } from 'ai';
-import { createGroq } from '@ai-sdk/groq';
+import { getGroq } from '../utils/groq.js';
 import mammoth from 'mammoth';
 import { YoutubeTranscript } from 'youtube-transcript';
 import auth from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+
+const youtubeSchema = z.object({
+  url: z.string({ required_error: 'Please provide a YouTube URL.' }).min(1, 'Please provide a YouTube URL.'),
+});
 
 const require = createRequire(import.meta.url);
 const { PDFParse } = require('pdf-parse');
@@ -23,10 +29,6 @@ router.use(auth);
 function sanitizeFilename(name) {
   return path.basename(name).replace(/[^a-zA-Z0-9._-]/g, '_');
 }
-
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -125,7 +127,7 @@ router.post('/upload', (req, res, next) => {
     const truncated = text.trim().slice(0, 12000);
 
     const { text: notes } = await generateText({
-      model: groq('llama-3.1-8b-instant'),
+      model: getGroq()('llama-3.1-8b-instant'),
       maxTokens: 2000,
       temperature: 0.4,
       prompt: generateNotePrompt(truncated, 'document'),
@@ -178,13 +180,9 @@ Requirements:
 }
 
 // POST /api/resources/youtube — Generate notes from YouTube video
-router.post('/youtube', async (req, res) => {
+router.post('/youtube', validate(youtubeSchema), async (req, res) => {
   try {
     const { url } = req.body;
-
-    if (!url) {
-      return res.status(400).json({ message: 'Please provide a YouTube URL.' });
-    }
 
     const ytRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(ytRegex);
@@ -223,7 +221,7 @@ router.post('/youtube', async (req, res) => {
     }
 
     const { text: notes } = await generateText({
-      model: groq('llama-3.1-8b-instant'),
+      model: getGroq()('llama-3.1-8b-instant'),
       maxTokens: 2000,
       temperature: 0.4,
       prompt,

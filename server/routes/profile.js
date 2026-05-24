@@ -1,10 +1,17 @@
 import express from 'express';
+import { z } from 'zod';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import auth from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import User from '../models/User.js';
+
+const updateProfileSchema = z.object({
+  name: z.string({ required_error: 'Name is required' }).min(1, 'Name is required'),
+  bio: z.string().max(500, 'Bio cannot exceed 500 characters').optional().default(''),
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,17 +62,9 @@ router.get('/', async (req, res) => {
 });
 
 // PUT /api/profile
-router.put('/', async (req, res) => {
+router.put('/', validate(updateProfileSchema), async (req, res) => {
   try {
     const { name, bio } = req.body;
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: 'Name is required' });
-    }
-
-    if (bio && bio.length > 500) {
-      return res.status(400).json({ message: 'Bio cannot exceed 500 characters' });
-    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,

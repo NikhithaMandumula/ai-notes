@@ -1,21 +1,24 @@
 import express from 'express';
+import { z } from 'zod';
 import SharedNote from '../models/SharedNote.js';
 import Note from '../models/Note.js';
 import User from '../models/User.js';
 import auth from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import { sendShareNotificationEmail } from '../utils/email.js';
 
 const router = express.Router();
 router.use(auth);
 
+const createShareSchema = z.object({
+  noteId: z.string({ required_error: 'Note ID is required' }).min(1, 'Note ID is required'),
+  toEmail: z.string({ required_error: 'Recipient email is required' }).email('Invalid email format'),
+});
+
 // POST /api/shares — Share a note with a user by email
-router.post('/', async (req, res) => {
+router.post('/', validate(createShareSchema), async (req, res) => {
   try {
     const { noteId, toEmail } = req.body;
-
-    if (!noteId || !toEmail) {
-      return res.status(400).json({ message: 'Note ID and recipient email are required' });
-    }
 
     // Verify note exists and belongs to current user
     const note = await Note.findOne({ _id: noteId, userId: req.user.id, isDeleted: { $ne: true } });

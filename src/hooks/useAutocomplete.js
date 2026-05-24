@@ -19,13 +19,10 @@ export function useAutocomplete({ debounceMs = 800 } = {}) {
       setLoading(true);
 
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch('/api/ai/autocomplete', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ context, title }),
           signal: controller.signal,
         });
