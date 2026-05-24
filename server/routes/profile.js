@@ -119,6 +119,9 @@ router.post(
 
       // Delete old profile picture if it exists
       const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
       if (user.profilePicture) {
         const oldPath = path.join(__dirname, '..', user.profilePicture);
         fs.unlink(oldPath, () => {});

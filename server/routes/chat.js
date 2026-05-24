@@ -21,6 +21,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Message is required' });
     }
 
+    if (message.length > 10000) {
+      return res.status(400).json({ message: 'Message is too long (max 10,000 characters)' });
+    }
+
     // Get or create conversation
     let conversation;
     if (conversationId) {

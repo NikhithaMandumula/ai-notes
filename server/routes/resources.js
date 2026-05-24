@@ -20,6 +20,10 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 router.use(auth);
 
+function sanitizeFilename(name) {
+  return path.basename(name).replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
@@ -31,7 +35,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${sanitizeFilename(file.originalname)}`),
 });
 
 const upload = multer({
@@ -243,7 +247,7 @@ if (!fs.existsSync(imageDir)) {
 
 const imageStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, imageDir),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${sanitizeFilename(file.originalname)}`),
 });
 
 const imageUpload = multer({

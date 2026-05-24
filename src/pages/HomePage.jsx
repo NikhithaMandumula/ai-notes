@@ -26,6 +26,7 @@ import {
 } from '../services/api';
 import { mergeCategories, formatDate, isHtmlContent } from '../utils/helpers';
 import ReactMarkdown from 'react-markdown';
+import DOMPurify from 'dompurify';
 import Swal from 'sweetalert2';
 
 function StatCard({ title, value, icon, gradient }) {
@@ -399,7 +400,7 @@ function HomePage() {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-sm max-w-none text-[var(--text-secondary)] leading-relaxed prose-p:my-2 prose-headings:text-[var(--text-primary)] prose-strong:text-[var(--text-primary)] prose-code:text-cyan-400 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
                 {isHtmlContent(viewingShare.noteId.body) ? (
-                  <div dangerouslySetInnerHTML={{ __html: viewingShare.noteId.body }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewingShare.noteId.body) }} />
                 ) : (
                   <ReactMarkdown>{viewingShare.noteId.body || 'No content'}</ReactMarkdown>
                 )}

@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import DOMPurify from 'dompurify';
 import { motion } from 'framer-motion';
 import { formatDate, formatRelativeTime, stripHtml, isHtmlContent } from '../utils/helpers';
 
@@ -160,7 +161,7 @@ function NoteCard({ note, onDelete, onEdit, onToggleFavorite, onTogglePin, onSha
 
         <div className="text-[var(--text-secondary)] text-sm leading-relaxed line-clamp-4 prose prose-sm max-w-none prose-p:m-0 prose-headings:m-0 prose-headings:text-[var(--text-primary)] prose-strong:text-[var(--text-primary)] prose-code:text-cyan-400 flex-1 overflow-hidden">
           {isHtmlContent(note.body) ? (
-            <div dangerouslySetInnerHTML={{ __html: note.body }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.body) }} />
           ) : (
             <ReactMarkdown>{note.body || 'No content'}</ReactMarkdown>
           )}

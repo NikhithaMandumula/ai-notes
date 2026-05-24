@@ -77,7 +77,8 @@ router.get('/sent', async (req, res) => {
       .populate('toUserId', 'name email')
       .sort({ createdAt: -1 });
     res.json(shares);
-  } catch {
+  } catch (error) {
+    console.error('Fetch sent shares error:', error);
     res.status(500).json({ message: 'Failed to fetch sent shares' });
   }
 });
@@ -90,7 +91,8 @@ router.get('/received', async (req, res) => {
       .populate('fromUserId', 'name email')
       .sort({ createdAt: -1 });
     res.json(shares);
-  } catch {
+  } catch (error) {
+    console.error('Fetch received shares error:', error);
     res.status(500).json({ message: 'Failed to fetch received shares' });
   }
 });
@@ -100,7 +102,8 @@ router.get('/received/count', async (req, res) => {
   try {
     const count = await SharedNote.countDocuments({ toUserId: req.user.id, status: 'pending' });
     res.json({ count });
-  } catch {
+  } catch (error) {
+    console.error('Fetch share count error:', error);
     res.status(500).json({ message: 'Failed to fetch share count' });
   }
 });
@@ -120,7 +123,8 @@ router.patch('/:id/accept', async (req, res) => {
       return res.status(404).json({ message: 'Share not found' });
     }
     res.json(share);
-  } catch {
+  } catch (error) {
+    console.error('Accept share error:', error);
     res.status(500).json({ message: 'Failed to accept share' });
   }
 });
@@ -140,7 +144,8 @@ router.patch('/:id/dismiss', async (req, res) => {
       return res.status(404).json({ message: 'Share not found' });
     }
     res.json(share);
-  } catch {
+  } catch (error) {
+    console.error('Dismiss share error:', error);
     res.status(500).json({ message: 'Failed to dismiss share' });
   }
 });

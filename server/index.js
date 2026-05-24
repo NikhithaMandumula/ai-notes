@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import notesRouter from './routes/notes.js';
@@ -24,19 +25,41 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
+// Validate required env vars at startup
+const requiredEnv = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
+for (const key of requiredEnv) {
+  if (!process.env[key]) {
+    console.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+
+// Rate limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { message: 'Too many requests, please try again later.' },
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { message: 'Too many AI requests, please slow down.' },
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/shares', sharesRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/resources', resourcesRouter);
+app.use('/api/ai', aiLimiter, aiRouter);
+app.use('/api/resources', aiLimiter, resourcesRouter);
 app.use('/api/profile', profileRouter);
-app.use('/api/chat', chatRouter);
+app.use('/api/chat', aiLimiter, chatRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

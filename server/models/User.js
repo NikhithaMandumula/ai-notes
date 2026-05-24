@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
     resetTokenExpiry: {
       type: Date,
     },
+    resetAttempts: {
+      type: Number,
+      default: 0,
+    },
     bio: {
       type: String,
       trim: true,

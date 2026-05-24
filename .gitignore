@@ -2,3 +2,4 @@
 ai-notes-backup/
 .env
 node_modules/
+dist/

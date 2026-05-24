@@ -1,8 +1,11 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import { createTransporter } from '../utils/email.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
 
@@ -11,7 +14,7 @@ function generateToken(userId) {
 }
 
 function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 async function sendOTPEmail(to, otp) {
@@ -111,23 +114,22 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'No account found with that email address.' });
+
+    if (user) {
+      const otp = generateOTP();
+      user.resetToken = otp;
+      user.resetTokenExpiry = new Date(Date.now() + 5 * 60 * 1000);
+      user.resetAttempts = 0;
+      await user.save();
+
+      try {
+        await sendOTPEmail(email, otp);
+      } catch (emailErr) {
+        console.error('Email send error:', emailErr.message);
+      }
     }
 
-    const otp = generateOTP();
-    user.resetToken = otp;
-    user.resetTokenExpiry = new Date(Date.now() + 5 * 60 * 1000);
-    await user.save();
-
-    try {
-      await sendOTPEmail(email, otp);
-    } catch (emailErr) {
-      console.error('Email send error:', emailErr.message);
-      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
-    }
-
-    res.json({ message: 'OTP sent to your email address.' });
+    res.json({ message: 'If an account exists, an OTP has been sent.' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -148,17 +150,31 @@ router.post('/reset-password', async (req, res) => {
 
     const user = await User.findOne({
       email,
-      resetToken: code,
       resetTokenExpiry: { $gt: new Date() },
     });
 
-    if (!user) {
+    if (!user || !user.resetToken) {
+      return res.status(400).json({ message: 'Invalid or expired reset code' });
+    }
+
+    if (user.resetAttempts >= 5) {
+      user.resetToken = undefined;
+      user.resetTokenExpiry = undefined;
+      user.resetAttempts = 0;
+      await user.save();
+      return res.status(429).json({ message: 'Too many attempts. Please request a new OTP.' });
+    }
+
+    if (user.resetToken !== code) {
+      user.resetAttempts = (user.resetAttempts || 0) + 1;
+      await user.save();
       return res.status(400).json({ message: 'Invalid or expired reset code' });
     }
 
     user.password = newPassword;
     user.resetToken = undefined;
     user.resetTokenExpiry = undefined;
+    user.resetAttempts = 0;
     await user.save();
 
     res.json({ message: 'Password reset successfully' });
@@ -176,13 +192,12 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ message: 'Google credential is required' });
     }
 
-    // Decode the JWT from Google (the ID token)
-    const parts = credential.split('.');
-    if (parts.length !== 3) {
-      return res.status(400).json({ message: 'Invalid Google credential' });
-    }
-
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    // Verify the JWT signature against Google's public keys
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
     const { sub: googleId, email, name, email_verified } = payload;
 
     if (!email_verified) {
