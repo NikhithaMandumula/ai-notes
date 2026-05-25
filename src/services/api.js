@@ -15,11 +15,12 @@ export async function signup(name, email, password) {
     credentials: 'include',
     body: JSON.stringify({ name, email, password }),
   });
-  const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Signup failed');
+    const text = await response.text();
+    try { throw new Error(JSON.parse(text).message); }
+    catch { throw new Error('Signup failed'); }
   }
-  return data;
+  return response.json();
 }
 
 export async function login(email, password) {
@@ -29,11 +30,12 @@ export async function login(email, password) {
     credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
-  const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Login failed');
+    const text = await response.text();
+    try { throw new Error(JSON.parse(text).message); }
+    catch { throw new Error('Login failed'); }
   }
-  return data;
+  return response.json();
 }
 
 export async function forgotPassword(email) {
@@ -43,11 +45,12 @@ export async function forgotPassword(email) {
     credentials: 'include',
     body: JSON.stringify({ email }),
   });
-  const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Request failed');
+    const text = await response.text();
+    try { throw new Error(JSON.parse(text).message); }
+    catch { throw new Error('Request failed'); }
   }
-  return data;
+  return response.json();
 }
 
 export async function resetPassword(email, code, newPassword) {
@@ -57,11 +60,12 @@ export async function resetPassword(email, code, newPassword) {
     credentials: 'include',
     body: JSON.stringify({ email, code, newPassword }),
   });
-  const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Reset failed');
+    const text = await response.text();
+    try { throw new Error(JSON.parse(text).message); }
+    catch { throw new Error('Reset failed'); }
   }
-  return data;
+  return response.json();
 }
 
 export async function verifySession() {

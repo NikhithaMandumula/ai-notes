@@ -26,14 +26,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Validate required env vars at startup
-const requiredEnv = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
-for (const key of requiredEnv) {
-  if (!process.env[key]) {
-    console.error(`Missing required environment variable: ${key}`);
-    process.exit(1);
-  }
-}
+// Validate required env vars at startup — fail fast before any connections
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
+if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required');
+if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is required');
 
 // Rate limiters
 const authLimiter = rateLimit({

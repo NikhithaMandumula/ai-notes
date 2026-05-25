@@ -29,7 +29,6 @@ export function SocketProvider({ children }) {
         message: `${share.fromUserId?.name || 'Someone'} shared "${share.noteId?.title || 'a note'}" with you`,
         timestamp: Date.now(),
       });
-      setTimeout(() => setNotification(null), 5000);
     };
 
     socket.on('note:received', handleReceived);
@@ -39,6 +38,11 @@ export function SocketProvider({ children }) {
       disconnectSocket();
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(id);
+  }, [notification]);
 
   // Load initial share data when authenticated
   useEffect(() => {
