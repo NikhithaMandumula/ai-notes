@@ -92,8 +92,9 @@ function ChatPage() {
     setInput('');
     setIsStreaming(true);
 
-    // Add placeholder for assistant
-    setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+    // Add placeholder for assistant, tracked by unique id
+    const assistantId = crypto.randomUUID();
+    setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
 
     try {
       const response = await sendChatMessage(activeConversationId, trimmed);
@@ -115,17 +116,13 @@ function ChatPage() {
           try {
             const parsed = JSON.parse(jsonStr);
             if (parsed.text) {
-              setMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last.role === 'assistant') {
-                  updated[updated.length - 1] = {
-                    ...last,
-                    content: last.content + parsed.text,
-                  };
-                }
-                return updated;
-              });
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId
+                    ? { ...msg, content: msg.content + parsed.text }
+                    : msg
+                )
+              );
             }
             if (parsed.conversationId && !activeConversationId) {
               setActiveConversationId(parsed.conversationId);
@@ -140,17 +137,13 @@ function ChatPage() {
       loadConversations();
     } catch (err) {
       console.error('Chat error:', err);
-      setMessages((prev) => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last.role === 'assistant' && !last.content) {
-          updated[updated.length - 1] = {
-            ...last,
-            content: 'Sorry, something went wrong. Please try again.',
-          };
-        }
-        return updated;
-      });
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId && !msg.content
+            ? { ...msg, content: 'Sorry, something went wrong. Please try again.' }
+            : msg
+        )
+      );
     } finally {
       setIsStreaming(false);
     }
@@ -376,7 +369,7 @@ function ChatPage() {
                   <AnimatePresence>
                     {messages.map((msg, i) => (
                       <motion.div
-                        key={i}
+                        key={msg.id || i}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2 }}

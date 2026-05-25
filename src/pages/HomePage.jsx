@@ -124,7 +124,7 @@ function HomePage() {
       }
     };
     loadMeta();
-  }, [notes]);
+  }, []);
 
   const reloadNotes = async () => {
     const data = await fetchNotes({

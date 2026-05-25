@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Note from '../models/Note.js';
+import SharedNote from '../models/SharedNote.js';
 import auth from '../middleware/auth.js';
 
 const router = express.Router();
@@ -236,7 +237,7 @@ router.get('/tags', async (req, res) => {
       userId: req.user.id,
       isDeleted: { $ne: true },
     });
-    res.json(tags);
+    res.json(tags.filter(t => t !== ''));
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch tags' });
   }
@@ -362,6 +363,7 @@ router.delete('/:id', async (req, res) => {
 // DELETE /api/notes/:id/permanent - Permanently delete from trash
 router.delete('/:id/permanent', async (req, res) => {
   try {
+    await SharedNote.deleteMany({ noteId: req.params.id });
     const note = await Note.findOneAndDelete({
       _id: req.params.id,
       userId: req.user.id,
