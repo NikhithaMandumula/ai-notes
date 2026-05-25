@@ -15,12 +15,11 @@ export async function signup(name, email, password) {
     credentials: 'include',
     body: JSON.stringify({ name, email, password }),
   });
+  const data = await response.json();
   if (!response.ok) {
-    const text = await response.text();
-    try { throw new Error(JSON.parse(text).message); }
-    catch { throw new Error('Signup failed'); }
+    throw new Error(data.message || 'Signup failed');
   }
-  return response.json();
+  return data;
 }
 
 export async function login(email, password) {
@@ -31,9 +30,8 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password }),
   });
   if (!response.ok) {
-    const text = await response.text();
-    try { throw new Error(JSON.parse(text).message); }
-    catch { throw new Error('Login failed'); }
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message || 'Login failed');
   }
   return response.json();
 }

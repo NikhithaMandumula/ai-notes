@@ -52,6 +52,48 @@ function generateOTP() {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
+function generateVerificationToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+async function sendVerificationEmail(to, token) {
+  const transporter = createTransporter();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5002';
+  const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to,
+    subject: 'AI Notes - Verify Your Email',
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0a0a0f; border-radius: 16px; border: 1px solid rgba(59,130,246,0.2);">
+        <h2 style="color: #f1f5f9; margin: 0 0 8px 0; font-size: 22px;">Verify Your Email</h2>
+        <p style="color: #94a3b8; margin: 0 0 24px 0; font-size: 14px;">Click the button below to verify your email address and activate your account. This link expires in 24 hours.</p>
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${verifyUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(to right, #22d3ee, #3b82f6); color: #fff; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 12px;">Verify Email</a>
+        </div>
+        <p style="color: #64748b; font-size: 12px; margin: 0;">If you didn't create an account, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
+async function sendAlreadyRegisteredEmail(to) {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to,
+    subject: 'AI Notes - Sign-up Attempt',
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0a0a0f; border-radius: 16px; border: 1px solid rgba(59,130,246,0.2);">
+        <h2 style="color: #f1f5f9; margin: 0 0 8px 0; font-size: 22px;">Sign-up Attempt</h2>
+        <p style="color: #94a3b8; margin: 0 0 24px 0; font-size: 14px;">Someone tried to create an account using your email address. If this was you, you already have an account — just log in instead.</p>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">If you didn't request this, no action is needed. Your account is safe.</p>
+        <p style="color: #64748b; font-size: 12px; margin: 0;">This is an automated notification from AI Notes.</p>
+      </div>
+    `,
+  });
+}
+
 async function sendOTPEmail(to, otp) {
   const transporter = createTransporter();
   await transporter.sendMail({
@@ -75,19 +117,50 @@ async function sendOTPEmail(to, otp) {
 router.post('/signup', authLimiter, validate(signupSchema), async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const verificationToken = generateVerificationToken();
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already registered' });
+
+    if (existingUser && existingUser.isVerified) {
+      // Already registered — send informational email, don't reveal to the caller
+      try {
+        await sendAlreadyRegisteredEmail(email);
+      } catch (emailErr) {
+        console.error('Already-registered email error:', emailErr.message);
+      }
+    } else if (existingUser && !existingUser.isVerified) {
+      // Pending verification — overwrite with new details and resend
+      existingUser.name = name;
+      existingUser.password = password;
+      existingUser.verificationToken = verificationToken;
+      existingUser.verificationTokenExpiry = verificationTokenExpiry;
+      await existingUser.save();
+
+      try {
+        await sendVerificationEmail(email, verificationToken);
+      } catch (emailErr) {
+        console.error('Verification email error:', emailErr.message);
+      }
+    } else {
+      // New user
+      const user = await User.create({
+        name,
+        email,
+        password,
+        verificationToken,
+        verificationTokenExpiry,
+      });
+
+      try {
+        await sendVerificationEmail(email, verificationToken);
+      } catch (emailErr) {
+        console.error('Verification email error:', emailErr.message);
+      }
     }
 
-    const user = await User.create({ name, email, password });
-    const token = generateToken(user._id);
-    setTokenCookie(res, token);
-
-    res.status(201).json({
-      user: { id: user._id, name: user.name, email: user.email, profilePicture: user.profilePicture || '' },
-    });
+    // Always return the same response
+    res.json({ message: 'Check your email to verify your account.' });
   } catch (error) {
     if (error.name === 'ValidationError') {
       const message = Object.values(error.errors).map((e) => e.message).join(', ');
@@ -95,6 +168,35 @@ router.post('/signup', authLimiter, validate(signupSchema), async (req, res) => 
     }
     console.error('Signup error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/auth/verify-email?token=...
+router.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.redirect('/login?verified=error');
+    }
+
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpiry: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.redirect('/login?verified=error');
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiry = undefined;
+    await user.save();
+
+    res.redirect('/login?verified=true');
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.redirect('/login?verified=error');
   }
 });
 
@@ -106,6 +208,10 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ message: 'Please verify your email first. Check your inbox.' });
     }
 
     if (!user.password) {
@@ -219,17 +325,21 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
     let user = await User.findOne({ email });
 
     if (user) {
-      // Link Google ID if not already linked
-      if (!user.googleId) {
-        user.googleId = googleId;
+      // Link Google ID and ensure verified
+      if (!user.googleId || !user.isVerified) {
+        user.googleId = user.googleId || googleId;
+        user.isVerified = true;
+        user.verificationToken = undefined;
+        user.verificationTokenExpiry = undefined;
         await user.save();
       }
     } else {
-      // Create new user
+      // Create new user (Google-verified)
       user = await User.create({
         name: name || email.split('@')[0],
         email,
         googleId,
+        isVerified: true,
       });
     }
 

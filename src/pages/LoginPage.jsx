@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login as loginApi } from '../services/api';
 
 function LoginPage() {
+  const [searchParams] = useSearchParams();
+  const verified = searchParams.get('verified');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -53,6 +56,16 @@ function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+            {verified === 'true' && (
+              <div className="mb-5 bg-emerald-500/10 border border-emerald-500/20 rounded-[14px] py-3 px-4 text-sm text-emerald-400">
+                Email verified successfully! You can now sign in.
+              </div>
+            )}
+            {verified === 'error' && (
+              <div className="mb-5 bg-red-500/10 border border-red-500/20 rounded-[14px] py-3 px-4 text-sm text-red-400">
+                Verification link is invalid or expired. Please sign up again.
+              </div>
+            )}
             {error && (
               <div className="mb-5 bg-red-500/10 border border-red-500/20 rounded-[14px] py-3 px-4 text-sm text-red-400">
                 {error}

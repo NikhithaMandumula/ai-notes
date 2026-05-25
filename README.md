@@ -50,7 +50,7 @@ cp .env.example .env
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PORT` | No | Server port (default: `5000`) |
+| `PORT` | No | Server port (default: `5002`) |
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `JWT_SECRET` | Yes | Secret for signing JWTs |
 | `GROQ_API_KEY` | Yes | Groq API key for AI features |
@@ -70,7 +70,7 @@ npm run dev
 ```
 
 - **Frontend** (Vite): http://localhost:5173
-- **Backend** (Express): http://localhost:5000
+- **Backend** (Express): http://localhost:5002
 
 The Vite dev server proxies `/api`, `/socket.io`, and `/uploads` to the backend.
 
