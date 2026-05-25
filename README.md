@@ -70,7 +70,7 @@ npm run dev
 ```
 
 - **Frontend** (Vite): http://localhost:5173
-- **Backend** (Express): http://localhost:5002
+- **Backend** (Express): http://localhost:5000
 
 The Vite dev server proxies `/api`, `/socket.io`, and `/uploads` to the backend.
 

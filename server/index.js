@@ -31,13 +31,7 @@ if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
 if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required');
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is required');
 
-// Rate limiters
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 15,
-  message: { message: 'Too many requests, please try again later.' },
-});
-
+// Rate limiter
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -54,7 +48,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/shares', sharesRouter);
 app.use('/api/ai', aiLimiter, aiRouter);

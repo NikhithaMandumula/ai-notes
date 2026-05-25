@@ -15,9 +15,8 @@ function parseCookies(cookieHeader) {
 export function setupSocket(io) {
   // Authenticate socket connections using JWT
   io.use((socket, next) => {
-    // Try cookie first, then handshake auth token as fallback
     const cookies = parseCookies(socket.request.headers.cookie);
-    const token = cookies.token || socket.handshake.auth?.token;
+    const token = cookies.token;
 
     if (!token) {
       return next(new Error('Authentication required'));

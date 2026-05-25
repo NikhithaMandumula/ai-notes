@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
+import rateLimit from 'express-rate-limit';
 import User from '../models/User.js';
 import { createTransporter } from '../utils/email.js';
 import { setTokenCookie, clearTokenCookie } from '../utils/cookies.js';
@@ -11,6 +12,12 @@ import { validate } from '../middleware/validate.js';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { message: 'Too many requests, please try again later.' },
+});
 
 const signupSchema = z.object({
   name: z.string({ required_error: 'Name is required' }).min(1, 'Name is required'),
@@ -65,7 +72,7 @@ async function sendOTPEmail(to, otp) {
 }
 
 // POST /api/auth/signup
-router.post('/signup', validate(signupSchema), async (req, res) => {
+router.post('/signup', authLimiter, validate(signupSchema), async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -92,7 +99,7 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', validate(loginSchema), async (req, res) => {
+router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -123,7 +130,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
+router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -151,7 +158,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res)
 });
 
 // POST /api/auth/reset-password
-router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
+router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async (req, res) => {
   try {
     const { email, code, newPassword } = req.body;
 
@@ -192,7 +199,7 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
 });
 
 // POST /api/auth/google
-router.post('/google', validate(googleAuthSchema), async (req, res) => {
+router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res) => {
   try {
     const { credential } = req.body;
 
